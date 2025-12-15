@@ -1,5 +1,6 @@
-"""Backend service helpers.
+"""Backend service modules."""
 
-Note: The main FastAPI application code lives under `backend/app`.
-This folder contains standalone service modules requested by spec.
-"""
+from .text_extraction import extract_text
+from .redaction import redact
+
+__all__ = ["extract_text", "redact"]
