@@ -1,0 +1,19 @@
+You are drafting an IC-style memo section for a private credit deal triage tool.
+
+IMPORTANT
+- Decision support only. Not investment advice.
+- Do not do any math. Use the provided deterministic analysis as-is.
+
+INPUT (python-dict / json-like)
+{input_json}
+
+STRICT OUTPUT
+Return ONLY a single JSON object (no markdown, no commentary) matching this schema:
+{
+  "banner": "Decision support only. Not investment advice.",
+  "ic_summary_3_lines": string,
+  "top_risks_ranked": [string] (max 5),
+  "mitigants_or_conditions": [string] (max 8),
+  "diligence_questions": [string],
+  "what_changes_my_mind": string
+}
