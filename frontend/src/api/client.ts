@@ -1,4 +1,4 @@
-import type { AnalysisResponse, DealDetail, DealOut, ExtractedTerms, ICDraft } from './types';
+import type { AnalysisResponse, DealDetail, DealOut, ExtractedTerms, ICDraft, UploadDocumentResponse } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -28,7 +28,7 @@ export const api = {
   uploadDocument: async (dealId: string, file: File) => {
     const fd = new FormData();
     fd.append('file', file);
-    return http<{ document_id: number; filename: string; sha256: string }>(`/deals/${encodeURIComponent(dealId)}/documents`, { method: 'POST', body: fd });
+    return http<UploadDocumentResponse>(`/deals/${encodeURIComponent(dealId)}/documents`, { method: 'POST', body: fd });
   },
 
   extractTerms: (dealId: string) => http<ExtractedTerms>(`/deals/${encodeURIComponent(dealId)}/extract`, { method: 'POST' }),

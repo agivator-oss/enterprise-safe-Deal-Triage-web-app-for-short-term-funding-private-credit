@@ -4,6 +4,12 @@ export type DealOut = {
   created_at: string;
 };
 
+export type UploadDocumentResponse = {
+  document_id: number;
+  filename: string;
+  sha256: string;
+};
+
 export type DocumentOut = {
   id: number;
   deal_id: string;
