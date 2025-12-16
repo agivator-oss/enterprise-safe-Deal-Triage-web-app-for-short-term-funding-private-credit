@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pdfplumber
-from docx import Document
+from docx import Document as DocxDocument
 
 
 def extract_text(path: Path) -> str:
@@ -28,5 +28,5 @@ def _extract_pdf(path: Path) -> str:
 
 
 def _extract_docx(path: Path) -> str:
-    doc = Document(path)
+    doc = DocxDocument(path)
     return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
