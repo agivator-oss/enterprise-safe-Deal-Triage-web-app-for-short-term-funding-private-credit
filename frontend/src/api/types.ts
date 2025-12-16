@@ -8,6 +8,8 @@ export type DocumentOut = {
   id: number;
   deal_id: string;
   filename: string;
+  content_type?: string | null;
+  size_bytes?: number | null;
   sha256: string;
   created_at: string;
 };

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
@@ -79,6 +80,8 @@ def deal_detail(deal_id: str, db: Session = Depends(get_db)):
                 "id": d.id,
                 "deal_id": d.deal_id,
                 "filename": d.filename,
+                "content_type": d.content_type,
+                "size_bytes": d.size_bytes,
                 "sha256": d.sha256,
                 "created_at": d.created_at.isoformat(),
             }
@@ -108,6 +111,8 @@ def list_documents(deal_id: str, db: Session = Depends(get_db)):
             id=d.id,
             deal_id=d.deal_id,
             filename=d.filename,
+            content_type=d.content_type,
+            size_bytes=d.size_bytes,
             sha256=d.sha256,
             created_at=d.created_at.isoformat(),
         )
@@ -122,7 +127,10 @@ async def upload_document(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    _get_deal(db, deal_id)
+    # Match deterministic behaviour: 404 if deal missing
+    deal = db.get(Deal, deal_id)
+    if not deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
 
     if not file.filename:
         raise HTTPException(status_code=400, detail="Missing filename")
@@ -137,46 +145,47 @@ async def upload_document(
 
     sha256 = sha256_bytes(raw)
 
-    path = _storage().save(deal_id, file.filename, raw)
-
     try:
-        extracted_text = extract_text(path)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to extract text: {e}")
+        storage = _storage()
+        path = await run_in_threadpool(storage.save, deal_id, file.filename, raw)
+        extracted_text = await run_in_threadpool(extract_text, path)
+        # Store redacted extracted text (MVP). TODO: store raw text encrypted-at-rest.
+        redacted_text = await run_in_threadpool(redact, extracted_text)
 
-    # Store redacted extracted text (MVP). TODO: store raw text encrypted-at-rest.
-    redacted_text = redact(extracted_text)
+        doc = Document(
+            deal_id=deal_id,
+            filename=file.filename,
+            content_type=file.content_type,
+            size_bytes=len(raw),
+            storage_path=str(path),
+            sha256=sha256,
+            extracted_text=redacted_text,
+            metadata_json={
+                "suffix": suffix,
+            },
+        )
+        db.add(doc)
 
-    doc = Document(
-        deal_id=deal_id,
-        filename=file.filename,
-        storage_path=str(path),
-        sha256=sha256,
-        extracted_text=redacted_text,
-        metadata_json={
-            "content_type": file.content_type,
-            "size_bytes": len(raw),
-            "suffix": suffix,
-        },
-    )
-    db.add(doc)
-    db.flush()
+        audit(
+            db,
+            actor=_actor(request),
+            action="upload_doc",
+            deal_id=deal_id,
+            metadata={"filename": file.filename, "sha256": sha256, "content_type": file.content_type, "size_bytes": len(raw)},
+        )
 
-    audit(
-        db,
-        actor=_actor(request),
-        action="upload_doc",
-        deal_id=deal_id,
-        metadata={"filename": file.filename, "sha256": sha256},
-    )
-
-    db.commit()
-    db.refresh(doc)
+        db.commit()
+        db.refresh(doc)
+    except Exception:
+        db.rollback()
+        raise
 
     return {
         "document_id": doc.id,
-        "filename": file.filename,
-        "sha256": sha256,
+        "filename": doc.filename,
+        "sha256": doc.sha256,
+        "content_type": doc.content_type,
+        "size_bytes": doc.size_bytes,
     }
 
 

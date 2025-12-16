@@ -17,6 +17,8 @@ class Document(Base):
 
     deal_id: Mapped[str] = mapped_column(String(36), ForeignKey("deals.id", ondelete="CASCADE"), index=True)
     filename: Mapped[str] = mapped_column(String(512))
+    content_type: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     storage_path: Mapped[str] = mapped_column(String(1024))
     sha256: Mapped[str] = mapped_column(String(64), index=True)
 

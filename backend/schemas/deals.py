@@ -19,5 +19,7 @@ class DocumentOut(BaseSchema):
     id: int
     deal_id: str
     filename: str
+    content_type: str | None = None
+    size_bytes: int | None = None
     sha256: str
     created_at: str
