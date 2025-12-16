@@ -171,6 +171,7 @@ async def upload_document(
     )
 
     db.commit()
+    db.refresh(doc)
 
     return {
         "document_id": doc.id,
