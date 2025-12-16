@@ -19,7 +19,8 @@ depends_on = None
 
 def upgrade() -> None:
     op.add_column("documents", sa.Column("content_type", sa.String(length=128), nullable=True))
-    op.add_column("documents", sa.Column("size_bytes", sa.Integer(), nullable=False, server_default="0"))
+    op.add_column("documents", sa.Column("size_bytes", sa.Integer(), nullable=False, server_default=sa.text("0")))
+    op.execute("UPDATE documents SET size_bytes = 0 WHERE size_bytes IS NULL")
     op.alter_column("documents", "size_bytes", server_default=None)
 
 
